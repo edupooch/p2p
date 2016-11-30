@@ -1,8 +1,13 @@
 package sample;
 
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import sample.modelo.Quadro;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
@@ -13,17 +18,17 @@ import java.util.Scanner;
 public class Server {
 
     private final static String DIR_COMPARTILHADO = "C:\\Users\\edupooch\\redes\\";
+    private static final int PORTA_PADRAO = 54321;
 
     public static void main(String[] args) throws IOException {
-        ServerSocket servidor = new ServerSocket(12345);
+        ServerSocket servidor = new ServerSocket(PORTA_PADRAO);
         System.out.println("Porta 12345 aberta!");
 
         while (true) {
             Socket cliente = servidor.accept();
             new Thread(() -> {
-                System.out.println("Nova conexão com o Cliente " +
-                        cliente.getInetAddress().getHostAddress()
-                );
+                String ip = cliente.getInetAddress().getHostAddress();
+                System.out.println("Nova conexão com o Cliente " + ip);
 
                 Scanner s = null;
                 try {
@@ -31,10 +36,14 @@ public class Server {
 
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
-                        System.out.println(msg);
+                        Gson gson = new Gson();
+                        Quadro quadro = gson.fromJson(msg, Quadro.class);
 
-                        if (msg.contains("ls")){
-                            retornaLista();
+                        switch (quadro.getTipo()){
+
+                            case Quadro.PEDIDO_LISTA:
+                                retornaLista(ip);
+
                         }
                     }
 
@@ -50,16 +59,27 @@ public class Server {
         }
     }
 
-    private static void retornaLista(){
+    private static void retornaLista(String ip) throws IOException {
         File folder = new File(DIR_COMPARTILHADO);
         File[] listOfFiles = folder.listFiles();
 
         assert listOfFiles != null;
-        for (File listOfFile : listOfFiles) {
+        String[] strList = new String[listOfFiles.length];
+        for (int i = 0; i < listOfFiles.length; i++) {
+            File listOfFile = listOfFiles[i];
             if (listOfFile.isFile()) {
-                System.out.println("File " + listOfFile.getName());
+                strList[i] = listOfFile.getName();
             }
         }
+
+        Quadro quadroLista = new Quadro(Quadro.RESPOSTA_LISTA,"",strList);
+        Gson gson = new Gson();
+        String strJson = gson.toJson(quadroLista);
+
+        Socket socketResposta = new Socket(ip, PORTA_PADRAO);
+        PrintStream saida = new PrintStream(socketResposta.getOutputStream());
+        saida.print(strJson);
+
     }
 
 }
