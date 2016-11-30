@@ -39,7 +39,7 @@ public class Server {
                         Gson gson = new Gson();
                         Quadro quadro = gson.fromJson(msg, Quadro.class);
 
-                        switch (quadro.getTipo()){
+                        switch (quadro.getTipo()) {
 
                             case Quadro.PEDIDO_LISTA:
                                 retornaLista(ip);
@@ -72,13 +72,24 @@ public class Server {
             }
         }
 
-        Quadro quadroLista = new Quadro(Quadro.RESPOSTA_LISTA,"",strList);
+        Quadro quadroLista = new Quadro(Quadro.RESPOSTA_LISTA, "", strList);
         Gson gson = new Gson();
-        String strJson = gson.toJson(quadroLista);
 
-        Socket socketResposta = new Socket(ip, PORTA_PADRAO);
-        PrintStream saida = new PrintStream(socketResposta.getOutputStream());
-        saida.print(strJson);
+        String strJson = gson.toJson(quadroLista);
+        enviaSocket(strJson, ip);
+
+    }
+
+    private static void enviaSocket(String strJson, String ip) {
+        try {
+            PrintStream saida = null;
+            Socket socketResposta = new Socket(ip, PORTA_PADRAO);
+            saida = new PrintStream(socketResposta.getOutputStream());
+            saida.print(strJson);
+        } catch (IOException e) {
+            e.printStackTrace();
+            enviaSocket(strJson,ip);
+        }
 
     }
 
