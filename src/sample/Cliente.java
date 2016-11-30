@@ -2,14 +2,16 @@ package sample;
 
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import sample.modelo.Quadro;
 
+import java.io.FileReader;
 import java.io.IOException;
 
 import java.io.PrintStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -20,7 +22,18 @@ public class Cliente {
 
     public static void main(String[] args)
             throws UnknownHostException, IOException {
-        Socket cliente = new Socket("127.0.0.1", PORTA_PADRAO);
+        new Thread(() -> {
+            try {
+                criaServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+        Scanner scannerIps = new Scanner(new FileReader("lista_ips.txt"));
+        String ip = scannerIps.nextLine();
+
+        Socket cliente = new Socket(ip, PORTA_PADRAO);
         System.out.println("O Cliente se conectou ao servidor!");
 
         Scanner teclado = new Scanner(System.in);
@@ -37,6 +50,46 @@ public class Cliente {
         saida.close();
         teclado.close();
         cliente.close();
+    }
+
+    private static void criaServer() throws IOException {
+        ServerSocket servidor = new ServerSocket(12345);
+        System.out.println("Porta 12345 aberta!");
+        while (true) {
+            Socket cliente = servidor.accept();
+            new Thread(() -> {
+                String ip = cliente.getInetAddress().getHostAddress();
+                System.out.println("Nova conexão com o Cliente " + ip);
+
+                Scanner s = null;
+                try {
+                    s = new Scanner(cliente.getInputStream());
+
+                    while (s.hasNextLine()) {
+                        String msg = s.nextLine();
+                        System.out.println("Recebeu " + msg);
+                        Gson gson = new Gson();
+                        Quadro quadro = gson.fromJson(msg, Quadro.class);
+                        System.out.println("Resposta: " + quadro.getTipo());
+                        switch (quadro.getTipo()) {
+
+                            case Quadro.RESPOSTA_LISTA:
+                                System.out.println(Arrays.toString(quadro.getDados()));
+                               break;
+
+                        }
+                    }
+
+                    s.close();
+                    servidor.close();
+                    cliente.close();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
+        }
     }
 }
 

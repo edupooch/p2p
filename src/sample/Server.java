@@ -17,7 +17,7 @@ import java.util.Scanner;
  */
 public class Server {
 
-    private final static String DIR_COMPARTILHADO = "C:\\Users\\edupooch\\redes\\";
+    private final static String DIR_COMPARTILHADO = "C:\\Users\\edupooch\\redes";
     private static final int PORTA_PADRAO = 54321;
 
     public static void main(String[] args) throws IOException {
@@ -36,13 +36,16 @@ public class Server {
 
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
+                        System.out.println(msg);
                         Gson gson = new Gson();
                         Quadro quadro = gson.fromJson(msg, Quadro.class);
 
                         switch (quadro.getTipo()) {
 
                             case Quadro.PEDIDO_LISTA:
+                                System.out.println("Pedido Lista");
                                 retornaLista(ip);
+                                break;
 
                         }
                     }
@@ -83,9 +86,9 @@ public class Server {
     private static void enviaSocket(String strJson, String ip) {
         try {
             PrintStream saida = null;
-            Socket socketResposta = new Socket(ip, PORTA_PADRAO);
+            Socket socketResposta = new Socket(ip, 12345);
             saida = new PrintStream(socketResposta.getOutputStream());
-            saida.print(strJson);
+            saida.println(strJson);
         } catch (IOException e) {
             e.printStackTrace();
             enviaSocket(strJson,ip);
