@@ -41,7 +41,7 @@ public class Cliente {
 
         while (teclado.hasNextLine()) {
             String msg = teclado.nextLine();
-            Quadro quadro = new Quadro(msg,"", new String[]{"",""});
+            Quadro quadro = new Quadro(msg, "", new String[]{"", ""});
             Gson gson = new Gson();
             String stringJson = gson.toJson(quadro);
             saida.println(stringJson);
@@ -68,14 +68,16 @@ public class Cliente {
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
                         System.out.println("Recebeu " + msg);
+                        //transformar de Json para objeto Quadro
                         Gson gson = new Gson();
                         Quadro quadro = gson.fromJson(msg, Quadro.class);
+
                         System.out.println("Resposta: " + quadro.getTipo());
                         switch (quadro.getTipo()) {
 
                             case Quadro.RESPOSTA_LISTA:
                                 System.out.println(Arrays.toString(quadro.getDados()));
-                               break;
+                                break;
 
                         }
                     }
