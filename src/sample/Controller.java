@@ -10,6 +10,7 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Scanner;
 
@@ -51,12 +52,15 @@ public class Controller {
                             case Quadro.RESPOSTA_LISTA:
                                 comparaLista(quadro.getDados());
                                 break;
-
                             case Quadro.PEDIDO_LISTA:
                                 System.out.println("Pedido Lista");
                                 enviaLista(ip);
                                 break;
-
+                            case Quadro.PEDIDO_ARQUIVO:
+                                enviaArquivos(quadro.getDados());
+                                break;
+                            case Quadro.RESPOSTA_ARQUIVO:
+                                break;
                         }
                     }
 
@@ -72,8 +76,26 @@ public class Controller {
         }
     }
 
+    private void enviaArquivos(String[] listaArquivos) {
+
+    }
+
     private void comparaLista(String[] listaRecebida) {
-        String[] meusArquivos = getListaArquivos();
+        new Thread(()-> {
+            String[] meusArquivos = getListaArquivos();
+            ArrayList<String> arquivosFaltando = new ArrayList<>();
+            for (String arquivo : listaRecebida) {
+                if (!Arrays.asList(meusArquivos).contains(arquivo)){
+                    arquivosFaltando.add(arquivo);
+                }
+            }
+            if (arquivosFaltando.size() > 0){
+                pedirArquivos(arquivosFaltando);
+            }
+        }).start();
+    }
+
+    private void pedirArquivos(ArrayList<String> arquivosFaltando) {
 
     }
 
@@ -113,19 +135,23 @@ public class Controller {
     }
 
     private String getEncerrar() {
-        Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA,"", new String[]{""});
+        Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA, "", new String[]{""});
         return new Gson().toJson(quadroPedidoLista);
     }
 
 
     private static void enviaLista(String ip) throws IOException {
-        String[] strList = getListaArquivos();
+        new Thread(() -> {
+            String[] strList = getListaArquivos();
 
-        Quadro quadroLista = new Quadro(Quadro.RESPOSTA_LISTA, "", strList);
-        Gson gson = new Gson();
+            Quadro quadroLista = new Quadro(Quadro.RESPOSTA_LISTA, "", strList);
+            Gson gson = new Gson();
 
-        String strJson = gson.toJson(quadroLista);
-        enviaSocket(strJson, ip);
+            String strJson = gson.toJson(quadroLista);
+            enviaSocket(strJson, ip);
+
+        }).start();
+
 
     }
 
