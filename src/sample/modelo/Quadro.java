@@ -13,21 +13,15 @@ public class Quadro {
     public static final String ENCERRAR_CONEXAO = "sai";
 
     private String tipo;
-    private String id;
     private String[] dados;
 
-    public Quadro(String tipo, String id, String[] dados) {
+    public Quadro(String tipo, String[] dados) {
         this.tipo = tipo;
-        this.id = id;
         this.dados = dados;
     }
 
     public String getTipo() {
         return tipo;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public String[] getDados() {
