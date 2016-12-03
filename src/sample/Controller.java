@@ -3,10 +3,7 @@ package sample;
 import com.google.gson.Gson;
 import sample.modelo.Quadro;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -22,19 +19,7 @@ public class Controller {
     private static final int N_TENTATIVAS_ENVIO = 15;
 
     void teste() {
-        Path path = Paths.get(DIR_COMPARTILHADO + "\\1.txt");
-        try {
-            byte[] data = Files.readAllBytes(path);
-            String s = Base64.getEncoder().encodeToString(data);
-            byte[] decode = Base64.getDecoder().decode(s);
-            Path path2 = Paths.get(DIR_COMPARTILHADO + "\\2.txt");
 
-            Files.write(path2, decode);
-            System.out.println(s);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     void iniciar() throws IOException {
@@ -42,18 +27,34 @@ public class Controller {
         cliente(); //pergunta
     }
 
-    private void servidor() throws IOException {
-        ServerSocket servidor = new ServerSocket(PORTA_PADRAO);
+    private void servidor() {
+        ServerSocket servidor = null;
+        try {
+            servidor = new ServerSocket(PORTA_PADRAO);
+        } catch (IOException e) {
+            e.printStackTrace();
+            servidor();
+        }
         System.out.println("Porta " + PORTA_PADRAO + " aberta!");
 
+        //noinspection InfiniteLoopStatement
         while (true) {
-            Socket cliente = servidor.accept();
+            Socket cliente = null;
+            try {
+                assert servidor != null;
+                cliente = servidor.accept();
+            } catch (IOException e) {
+                servidor();
+            }
+            Socket finalCliente = cliente;
+            ServerSocket finalServidor = servidor;
             new Thread(() -> {
-                String ip = cliente.getInetAddress().getHostAddress();
+                assert finalCliente != null;
+                String ip = finalCliente.getInetAddress().getHostAddress();
                 System.out.println("Nova conexão com o Cliente " + ip);
                 Scanner s = null;
                 try {
-                    s = new Scanner(cliente.getInputStream());
+                    s = new Scanner(finalCliente.getInputStream());
 
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
@@ -81,8 +82,8 @@ public class Controller {
                     }
 
                     s.close();
-                    servidor.close();
-                    cliente.close();
+                    finalServidor.close();
+                    finalCliente.close();
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -92,13 +93,63 @@ public class Controller {
         }
     }
 
+    private void cliente() {
+
+        //Ler o arquivo da lista de IP's e adicionar num ArrayList
+        Scanner scannerIps = null;
+        try {
+            scannerIps = new Scanner(new FileReader("lista_ips.txt"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            System.out.println("Erro no arquivo de IPs");
+            cliente();
+        }
+        ArrayList<String> contatos = new ArrayList<>();
+        assert scannerIps != null;
+        while (scannerIps.hasNextLine()) {
+            contatos.add(scannerIps.nextLine());
+        }
+        // Embaralhar lista de IP's para não começar sempre pelo primeiro
+        Collections.shuffle(contatos);
+        int count = 0;//contador para qual ip da lista pedir a lista
+
+        //Três threads que ficam pedindo as listas de arquivos dos outros usuários
+        new Thread(() -> loopPedir(contatos, count)).start();
+        new Thread(() -> loopPedir(contatos, count + 1)).start();
+        new Thread(() -> loopPedir(contatos, count + 2)).start();
+    }
+
+    @SuppressWarnings("InfiniteRecursion")
+    private void loopPedir(ArrayList<String> contatos, int count) {
+        if (count == contatos.size()) count = 0; // retorna o contador pra zero caso chegue no limite
+        String ip = contatos.get(count++); //salva o ip do contato e incrementa o contador
+
+        try {
+            Socket cliente = new Socket(ip, PORTA_PADRAO);
+            System.out.println("CLIENTE: Me conectei com " + ip);
+            PrintStream saida = new PrintStream(cliente.getOutputStream());
+
+            Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA, new String[]{""});
+            Gson gson = new Gson();
+            String jsonPedido = gson.toJson(quadroPedidoLista);
+            saida.println(jsonPedido);
+            saida.close();
+            cliente.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        loopPedir(contatos, count);
+    }
+
+
     private void recebeArquivo(String[] dados) {
         for (int i = 0; i < dados.length; i = i + 2) {
             String nomeArquivo = dados[i];
             System.out.print("Arquivo " + nomeArquivo + " recebido!");
             Path path = Paths.get(DIR_COMPARTILHADO + "\\" + nomeArquivo);
             try {
-                byte[] bytesArquivo = Base64.getDecoder().decode(dados[i+1]);
+                byte[] bytesArquivo = Base64.getDecoder().decode(dados[i + 1]);
                 Files.write(path, bytesArquivo);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -143,47 +194,6 @@ public class Controller {
         String strJson = gson.toJson(quadroPedido);
         enviaSocket(strJson, ipFonte);
     }
-
-    private void cliente() throws IOException {
-
-        //Ler o arquivo da lista de IP's e adicionar num ArrayList
-        Scanner scannerIps = new Scanner(new FileReader("lista_ips.txt"));
-        ArrayList<String> contatos = new ArrayList<>();
-        while (scannerIps.hasNextLine()) {
-            contatos.add(scannerIps.nextLine());
-        }
-        // Embaralhar lista de IP's para não começar sempre pelo primeiro
-        Collections.shuffle(contatos);
-        int count = 0;//contador para qual ip da lista pedir a lista
-
-        while (true) {
-            boolean pedir = true;
-
-            if (count == contatos.size()) count = 0; // retorna o contador pra zero caso chegue no limite
-            String ip = contatos.get(count++); //salva o ip do contato e incrementa o contador
-
-            Socket cliente = new Socket(ip, PORTA_PADRAO);
-            System.out.println("CLIENTE: Me conectei com " + ip);
-            PrintStream saida = new PrintStream(cliente.getOutputStream());
-
-
-            Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA, new String[]{""});
-            Gson gson = new Gson();
-            String jsonPedido = gson.toJson(quadroPedidoLista);
-            saida.println(jsonPedido);
-            saida.println(getEncerrar());
-
-            saida.close();
-            cliente.close();
-        }
-
-    }
-
-    private String getEncerrar() {
-        Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA, new String[]{""});
-        return new Gson().toJson(quadroPedidoLista);
-    }
-
 
     private static void enviaLista(String ip) throws IOException {
         new Thread(() -> {
