@@ -16,15 +16,17 @@ public class Controller {
 
     private final static String DIR_COMPARTILHADO = "src\\dir";
     private static final int PORTA_PADRAO = 54321;
-    private static final int N_TENTATIVAS_ENVIO = 15;
+    private static final int N_TENTATIVAS_ENVIO = 5;
 
     void teste() {
 
     }
 
     void iniciar() throws IOException {
-        servidor(); //escuta
-        cliente(); //pergunta
+        //escuta
+        new Thread(this::servidor).start();
+        //pergunta
+        cliente();
     }
 
     private void servidor() {
@@ -113,33 +115,28 @@ public class Controller {
         Collections.shuffle(contatos);
         int count = 0;//contador para qual ip da lista pedir a lista
 
-        //Três threads que ficam pedindo as listas de arquivos dos outros usuários
+        //Duas threads que ficam pedindo as listas de arquivos dos outros usuários
         new Thread(() -> loopPedir(contatos, count)).start();
         new Thread(() -> loopPedir(contatos, count + 1)).start();
-        new Thread(() -> loopPedir(contatos, count + 2)).start();
     }
 
-    @SuppressWarnings("InfiniteRecursion")
-    private void loopPedir(ArrayList<String> contatos, int count) {
-        if (count == contatos.size()) count = 0; // retorna o contador pra zero caso chegue no limite
-        String ip = contatos.get(count++); //salva o ip do contato e incrementa o contador
 
-        try {
-            Socket cliente = new Socket(ip, PORTA_PADRAO);
-            System.out.println("CLIENTE: Me conectei com " + ip);
-            PrintStream saida = new PrintStream(cliente.getOutputStream());
+    @SuppressWarnings("InfiniteLoopStatement")
+    private void loopPedir(ArrayList<String> contatos, int count) {
+        while (true) {
+            if (count == contatos.size()) {
+                count = 0;// retorna o contador pra zero caso chegue no limite
+                espera(10000); //espera 10s quando já pediu pra todos os contatos
+            }
+            String ip = contatos.get(count++); //salva o ip do contato e incrementa o contador
 
             Quadro quadroPedidoLista = new Quadro(Quadro.PEDIDO_LISTA, new String[]{""});
             Gson gson = new Gson();
             String jsonPedido = gson.toJson(quadroPedidoLista);
-            saida.println(jsonPedido);
-            saida.close();
-            cliente.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            enviaSocket(jsonPedido, ip);
+            espera(2000);
         }
 
-        loopPedir(contatos, count);
     }
 
 
@@ -238,7 +235,9 @@ public class Controller {
             e.printStackTrace();
             if (tentativas < N_TENTATIVAS_ENVIO) {
                 tentativas++;
-                espera(100 * tentativas);
+                System.out.println("Quadro não enviado: " + strJson);
+                System.out.println("Reenviar. Esperar " + tentativas +"s...");
+                espera(1000 * tentativas);
                 enviaSocket(strJson, ip, tentativas);
             } else {
                 System.out.println("Número de tentativas esgotado para o envio do quadro " + strJson);
@@ -247,7 +246,6 @@ public class Controller {
     }
 
     private static void espera(int tempo) {
-        System.out.println("Quadro não enviado. Esperar " + tempo + "ms ...");
         try {
             Thread.sleep(tempo);
         } catch (InterruptedException e) {

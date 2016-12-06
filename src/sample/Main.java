@@ -16,7 +16,7 @@ public class Main extends Application {
         primaryStage.show();
 
         Controller controller = new Controller();
-        controller.teste();
+        controller.iniciar();
     }
 
 
