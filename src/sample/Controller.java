@@ -60,7 +60,7 @@ public class Controller {
 
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
-                        System.out.println(msg);
+                        System.out.println("RECEBIDO: " + msg);
 
                         Gson gson = new Gson();
                         Quadro quadro = gson.fromJson(msg, Quadro.class);
@@ -180,14 +180,19 @@ public class Controller {
                 }
             }
             if (arquivosFaltando.size() > 0) {
-                pedirArquivos((String[]) arquivosFaltando.toArray(), ipFonte);
+                pedirArquivos(arquivosFaltando, ipFonte);
             }
         }).start();
     }
 
-    private void pedirArquivos(String[] arquivosFaltando, String ipFonte) {
+    private void pedirArquivos(ArrayList<String> arquivosFaltando, String ipFonte) {
         Gson gson = new Gson();
-        Quadro quadroPedido = new Quadro(Quadro.PEDIDO_ARQUIVO, arquivosFaltando);
+        String[] strArquivos = new String[arquivosFaltando.size()];
+        for (int i = 0; i < arquivosFaltando.size(); i++) {
+            System.out.println("Arquivo faltando: " + arquivosFaltando.get(i));
+            strArquivos[i] = arquivosFaltando.get(i);
+        }
+        Quadro quadroPedido = new Quadro(Quadro.PEDIDO_ARQUIVO, strArquivos);
         String strJson = gson.toJson(quadroPedido);
         enviaSocket(strJson, ipFonte);
     }
@@ -231,12 +236,13 @@ public class Controller {
             Socket socketResposta = new Socket(ip, PORTA_PADRAO);
             saida = new PrintStream(socketResposta.getOutputStream());
             saida.println(strJson);
+            System.out.println("JSON enviado: " + strJson);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("");
             if (tentativas < N_TENTATIVAS_ENVIO) {
                 tentativas++;
                 System.out.println("Quadro não enviado: " + strJson);
-                System.out.println("Reenviar. Esperar " + tentativas +"s...");
+                System.out.println("Reenviar. Esperar " + tentativas + "s...");
                 espera(1000 * tentativas);
                 enviaSocket(strJson, ip, tentativas);
             } else {
