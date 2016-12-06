@@ -60,7 +60,7 @@ public class Controller {
 
                     while (s.hasNextLine()) {
                         String msg = s.nextLine();
-                        System.out.println("RECEBIDO: " + msg);
+                        System.out.println("RECEBIDO: " + msg + " de " + ip);
 
                         Gson gson = new Gson();
                         Quadro quadro = gson.fromJson(msg, Quadro.class);
@@ -71,7 +71,6 @@ public class Controller {
                                 comparaLista(quadro.getDados(), ip);
                                 break;
                             case Quadro.PEDIDO_LISTA:
-                                System.out.println("Pedido Lista");
                                 enviaLista(ip);
                                 break;
                             case Quadro.PEDIDO_ARQUIVO:
@@ -241,7 +240,7 @@ public class Controller {
             System.out.println("");
             if (tentativas < N_TENTATIVAS_ENVIO) {
                 tentativas++;
-                System.out.println("Quadro não enviado: " + strJson);
+                System.out.println("Quadro não enviado: " + strJson + "para " + ip);
                 System.out.println("Reenviar. Esperar " + tentativas + "s...");
                 espera(1000 * tentativas);
                 enviaSocket(strJson, ip, tentativas);
