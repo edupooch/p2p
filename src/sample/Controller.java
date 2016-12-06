@@ -245,7 +245,7 @@ public class Controller {
                 espera(1000 * tentativas);
                 enviaSocket(strJson, ip, tentativas);
             } else {
-                System.out.println("Número de tentativas esgotado para o envio do quadro " + strJson);
+                System.out.println("Número de tentativas esgotado para o envio do quadro " + strJson + " para " + ip);
             }
         }
     }
