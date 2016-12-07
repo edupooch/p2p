@@ -14,7 +14,7 @@ import java.util.*;
 
 public class Controller {
 
-    private final static String DIR_COMPARTILHADO = "src\\dir";
+    private final static String DIR_COMPARTILHADO = "src\\dir2";
     private static final int PORTA_PADRAO = 54321;
     private static final int N_TENTATIVAS_ENVIO = 5;
 
@@ -235,7 +235,7 @@ public class Controller {
             Socket socketResposta = new Socket(ip, PORTA_PADRAO);
             saida = new PrintStream(socketResposta.getOutputStream());
             saida.println(strJson);
-            System.out.println("JSON enviado: " + strJson);
+            System.out.println("JSON enviado: " + strJson + " para " + ip);
         } catch (IOException e) {
             System.out.println("");
             if (tentativas < N_TENTATIVAS_ENVIO) {
