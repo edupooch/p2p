@@ -1,26 +1,19 @@
 package sample;
 
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
+import sample.controle.Controller;
 
-public class Main extends Application {
+import java.io.IOException;
 
-    @Override
-    public void start(Stage primaryStage) throws Exception{
-        Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Hello World");
-        primaryStage.setScene(new Scene(root, 300, 275));
-        primaryStage.show();
-
-        Controller controller = new Controller();
-        controller.iniciar();
-    }
-
+public class Main{
 
     public static void main(String[] args) {
-        launch(args);
+        Controller controller = new Controller();
+        try {
+            controller.iniciar();
+        } catch (Exception e) {
+            System.out.println("Ocorreu um problema. Reiniciando programa...");
+            main(null);
+        }
     }
+
 }

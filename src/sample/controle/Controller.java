@@ -1,4 +1,4 @@
-package sample;
+package sample.controle;
 
 import com.google.gson.Gson;
 import sample.modelo.Quadro;
@@ -14,15 +14,12 @@ import java.util.*;
 
 public class Controller {
 
-    private final static String DIR_COMPARTILHADO = "src\\dir2";
+    private final static String DIR_COMPARTILHADO = "src\\tmp";
+
     private static final int PORTA_PADRAO = 54321;
     private static final int N_TENTATIVAS_ENVIO = 5;
 
-    void teste() {
-
-    }
-
-    void iniciar() throws IOException {
+    public void iniciar() {
         //escuta
         new Thread(this::servidor).start();
         //pergunta
@@ -50,6 +47,7 @@ public class Controller {
             }
             Socket finalCliente = cliente;
             ServerSocket finalServidor = servidor;
+
             new Thread(() -> {
                 assert finalCliente != null;
                 String ip = finalCliente.getInetAddress().getHostAddress();
@@ -77,7 +75,7 @@ public class Controller {
                                 enviaArquivos(quadro.getDados(), ip);
                                 break;
                             case Quadro.RESPOSTA_ARQUIVO:
-                                recebeArquivo(quadro.getDados());
+                                recebeArquivo(quadro.getDados(), ip);
                                 break;
                         }
                     }
@@ -95,7 +93,15 @@ public class Controller {
     }
 
     private void cliente() {
+        ArrayList<String> contatos = getListaContatos();
+        int count = 0;//contador para qual ip da lista pedir a lista
 
+        //Duas threads que ficam pedindo as listas de arquivos dos outros usuários
+        new Thread(() -> loopPedir(contatos, count)).start();
+        new Thread(() -> loopPedir(contatos, count + 1)).start();
+    }
+
+    private ArrayList<String> getListaContatos() {
         //Ler o arquivo da lista de IP's e adicionar num ArrayList
         Scanner scannerIps = null;
         try {
@@ -112,11 +118,7 @@ public class Controller {
         }
         // Embaralhar lista de IP's para não começar sempre pelo primeiro
         Collections.shuffle(contatos);
-        int count = 0;//contador para qual ip da lista pedir a lista
-
-        //Duas threads que ficam pedindo as listas de arquivos dos outros usuários
-        new Thread(() -> loopPedir(contatos, count)).start();
-        new Thread(() -> loopPedir(contatos, count + 1)).start();
+        return contatos;
     }
 
 
@@ -125,7 +127,9 @@ public class Controller {
         while (true) {
             if (count == contatos.size()) {
                 count = 0;// retorna o contador pra zero caso chegue no limite
+                contatos = getListaContatos(); //atualiza a lista de contatos
                 espera(10000); //espera 10s quando já pediu pra todos os contatos
+
             }
             String ip = contatos.get(count++); //salva o ip do contato e incrementa o contador
 
@@ -139,10 +143,10 @@ public class Controller {
     }
 
 
-    private void recebeArquivo(String[] dados) {
+    private void recebeArquivo(String[] dados, String ip) {
         for (int i = 0; i < dados.length; i = i + 2) {
             String nomeArquivo = dados[i];
-            System.out.print("Arquivo " + nomeArquivo + " recebido!");
+            System.out.println("Arquivo " + nomeArquivo + " recebido de " + ip);
             Path path = Paths.get(DIR_COMPARTILHADO + "\\" + nomeArquivo);
             try {
                 byte[] bytesArquivo = Base64.getDecoder().decode(dados[i + 1]);
